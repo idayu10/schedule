@@ -1,6 +1,15 @@
 <template>
   <v-form>
     <v-container>
+      <!-- ローディングのアニメーション -->
+      <div
+        v-if="loading"
+        id="is-loading"
+      >
+        <div id="loading">
+          <img src="~/assets/img/loading.gif" alt="loading" />
+        </div>
+      </div>
       <v-row justify="start">
         <v-col>
           <v-radio-group
@@ -97,6 +106,8 @@ export default class Index extends Vue{
   date: string = new Date().toISOString().substr(0, 10);
   userNum: string = '';
 
+  loading: boolean = false;
+
   async created(): Promise<void> {
     await this.searchUser();
     this.searchSchedule();
@@ -114,6 +125,7 @@ export default class Index extends Vue{
   }
 
   async searchSchedule(): Promise<void> {
+    this.loading = true;
     const yyyyymmdd: string = this.date.replace(/-/g, '');
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
     const url:string = 'schedule-api/schedule/date';
@@ -127,6 +139,9 @@ export default class Index extends Vue{
         this.makeSchedule(yyyyymmdd);
       }).catch( error => {
         console.log("response error", error);
+      })
+      .finally(() => {
+        this.loading = false;
       });
   }
 
@@ -144,11 +159,15 @@ export default class Index extends Vue{
   }
 
   onSave(): void {
+    this.loading = true;
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
     const url:string = 'schedule-api/schedule/insert';
     this.$axios.post(url, this.schedules)
       .catch( error => {
         console.log(error);
+      })
+      .finally(() => {
+        this.loading = false;
       });
   }
 }
@@ -157,5 +176,30 @@ export default class Index extends Vue{
 .add-border {
   border: 0.5px solid;
   border-color: black;
+}
+
+#is-loading {
+ display: block;
+ position: fixed;
+ width: 100%;
+ height: 100%;
+ top: 0px;
+ left: 0px;
+ background: rgb(15, 15, 15);
+ opacity: 20%;
+ z-index: 8;
+}
+#loading {
+  position:fixed;
+  left: 50%;
+  top: 50%;
+  border: 1px solid blue;
+  width: 160px;
+  height: 120px;
+  margin-left: -80px;
+  margin-top: -60px;
+  text-align: center;
+  color: black;
+  z-index: 9;
 }
 </style>
