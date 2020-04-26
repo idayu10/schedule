@@ -70,9 +70,6 @@ export default {
       rejectUnauthorized: false
     }
   },
-  "resolutions": {
-    "vuetify": "2.2.24"
-  },
   /*
   ** vuetify module configuration
   ** https://github.com/nuxt-community/vuetify-module
