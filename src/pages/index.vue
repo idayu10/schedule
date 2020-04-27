@@ -26,18 +26,21 @@
             ></v-radio>
           </v-radio-group>
         </v-col>
-        <v-col align-self="end">
-          {{date}}
-          <v-icon @click="showCalendar = !showCalendar">mdi-calendar-month</v-icon>
-          <v-date-picker
-            v-show="showCalendar"
-            v-model="date"
-            no-title
-            @input="searchSchedule"
-          ></v-date-picker>
+        <v-col align-self="end" :cols="9">
+          <v-row>
+            {{date}}
+            <v-icon @click="showCalendar = !showCalendar">mdi-calendar-month</v-icon>
+          </v-row>
+          <v-row v-show="showCalendar" justify="start">
+            <v-date-picker
+              v-model="date"
+              no-title
+              @input="searchSchedule"
+            ></v-date-picker>
+          </v-row>
         </v-col>
-        <v-col></v-col>
-        <v-col></v-col>
+        <!-- <v-col></v-col>
+        <v-col></v-col> -->
       </v-row>
       <v-row justify="start">
         <v-btn @click="show0To5 = !show0To5">
@@ -45,7 +48,7 @@
         </v-btn>
       </v-row>
       <v-row justify="center">
-        <v-col :cols="1" class="add-border">
+        <v-col :cols="2" class="add-border">
           時間
         </v-col>
         <v-col class="add-border">
@@ -64,7 +67,7 @@
         :key="index"
         v-show="5 < index || show0To5"
       >
-        <v-col :cols="1" class="add-border">
+        <v-col :cols="2" class="add-border">
           {{index+'-'+(index+1)}}
         </v-col>
         <v-col class="add-border">
