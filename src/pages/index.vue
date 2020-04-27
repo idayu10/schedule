@@ -10,6 +10,7 @@
           <img src="~/assets/img/loading.gif" alt="loading" />
         </div>
       </div>
+      <!-- メイン -->
       <v-row justify="start">
         <v-col>
           <v-radio-group
@@ -25,14 +26,23 @@
             ></v-radio>
           </v-radio-group>
         </v-col>
-        <v-col>
+        <v-col align-self="end">
+          {{date}}
+          <v-icon @click="showCalendar = !showCalendar">mdi-calendar-month</v-icon>
           <v-date-picker
+            v-show="showCalendar"
             v-model="date"
+            no-title
             @input="searchSchedule"
           ></v-date-picker>
         </v-col>
         <v-col></v-col>
         <v-col></v-col>
+      </v-row>
+      <v-row justify="start">
+        <v-btn @click="show0To5 = !show0To5">
+          0~5時を表示
+        </v-btn>
       </v-row>
       <v-row justify="center">
         <v-col :cols="1" class="add-border">
@@ -52,6 +62,7 @@
         justify="center"
         v-for="(item, index) in schedules"
         :key="index"
+        v-show="5 < index || show0To5"
       >
         <v-col :cols="1" class="add-border">
           {{index+'-'+(index+1)}}
@@ -107,6 +118,8 @@ export default class Index extends Vue{
   userNum: string = '';
 
   loading: boolean = false;
+  showCalendar: boolean = false;
+  show0To5: boolean = false;
 
   async created(): Promise<void> {
     await this.searchUser();
