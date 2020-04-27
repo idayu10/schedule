@@ -150,7 +150,7 @@ export default class Index extends Vue{
       this.schedules = [];
       for (let i = 0; i < 24; i++) {
         const schedule = new TimeScheduleImpl();
-        schedule.userNum = '1';
+        schedule.userNum = this.userNum;
         schedule.targetDate = yyyymmdd;
         schedule.targetTime = ('00' + i.toString()).slice(-2);
         this.schedules.push(schedule);
