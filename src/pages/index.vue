@@ -84,7 +84,7 @@
                 @click="onSuggest(item.targetTime, 'schedule', scope)"
               ></v-text-field>
             </template>
-            <v-list>
+            <v-list v-show="suggests.length !== 0">
               <v-list-item-group>
                 <v-list-item
                   v-for="(suggest, i) in suggests"
@@ -100,10 +100,33 @@
           </v-menu>
         </v-col>
         <v-col class="add-border">
-          <v-text-field
-            v-model="item.timeResult"
-            clearable
-          ></v-text-field>
+          <v-menu
+            allow-overflow
+            bottom
+            left
+            offset-y
+          >
+            <template v-slot:activator="scope">
+              <v-text-field
+                v-model="item.timeResult"
+                clearable
+                @click="onSuggest(item.targetTime, 'result', scope)"
+              ></v-text-field>
+            </template>
+            <v-list v-show="suggests.length !== 0">
+              <v-list-item-group>
+                <v-list-item
+                  v-for="(suggest, i) in suggests"
+                  :key="i"
+                  @click="item.timeSchedule = suggest.suggest"
+                >
+                  <v-list-item-content>
+                    <v-list-item-title v-text="suggest.suggest"></v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list-item-group>
+            </v-list>
+          </v-menu>
         </v-col>
         <v-col class="add-border">
           <v-text-field
