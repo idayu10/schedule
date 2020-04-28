@@ -71,10 +71,33 @@
           {{index+'-'+(index+1)}}
         </v-col>
         <v-col class="add-border">
-          <v-text-field
-            v-model="item.timeSchedule"
-            clearable
-          ></v-text-field>
+          <v-menu
+            allow-overflow
+            bottom
+            left
+            offset-y
+          >
+            <template v-slot:activator="scope">
+              <v-text-field
+                v-model="item.timeSchedule"
+                clearable
+                @click="onSuggest(item.targetTime, 'schedule', scope)"
+              ></v-text-field>
+            </template>
+            <v-list>
+              <v-list-item-group>
+                <v-list-item
+                  v-for="(suggest, i) in suggests"
+                  :key="i"
+                  @click="item.timeSchedule = suggest.suggest"
+                >
+                  <v-list-item-content>
+                    <v-list-item-title v-text="suggest.suggest"></v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list-item-group>
+            </v-list>
+          </v-menu>
         </v-col>
         <v-col class="add-border">
           <v-text-field
@@ -107,6 +130,7 @@
 import { Component, Vue } from 'nuxt-property-decorator';
 import {TimeSchedule, TimeScheduleImpl} from '@/model/time-schedule'
 import {UserData} from '@/model/user-data'
+import {Suggest} from '@/model/suggest'
 
 @Component({
   components: {
@@ -119,6 +143,7 @@ export default class Index extends Vue{
   schedules: TimeSchedule [] = [];
   date: string = new Date().toISOString().substr(0, 10);
   userNum: string = '';
+  suggests: Suggest[] = []
 
   loading: boolean = false;
   showCalendar: boolean = false;
@@ -172,6 +197,26 @@ export default class Index extends Vue{
         this.schedules.push(schedule);
       }
     }
+  }
+
+  async onSuggest(time: string, mode: string, scope: any): Promise<void> {
+    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+    const url:string = 'schedule-api/schedule/suggest';
+    return this.$axios.get(url,{
+        params: {
+          user: this.userNum,
+          time: time,
+          mode: mode
+        }
+      }).then(response => {
+        this.suggests = response.data;
+        scope.value = true;
+      }).catch( error => {
+        console.log("response error", error);
+      })
+      .finally(() => {
+        this.loading = false;
+      });
   }
 
   onSave(): void {
