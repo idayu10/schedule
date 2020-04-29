@@ -113,7 +113,7 @@
               <v-text-field
                 v-model="item.timeResult"
                 clearable
-                @click="onFocus(item.targetTime, 'result', scope)"
+                @click="onFocus(item.targetTime, 'result', item, scope)"
                 @keydown.native.delete="noSavehistory = true"
                 @blur="onBlur(item.timeResult)"
               ></v-text-field>
@@ -176,6 +176,7 @@ export default class Index extends Vue{
   history: string[] = [];
   suggests: Suggest[] = [];
   wordSource: WordSource[] = [];
+  suggestsTime: Suggest[] = [];
 
   loading: boolean = false;
   showCalendar: boolean = false;
@@ -247,6 +248,10 @@ export default class Index extends Vue{
   onInput(input: string): void {
     this.history.push(input);
 
+    if (!input) {
+      this.suggests = this.suggestsTime;
+      return;
+    }
     const result: Suggest[] = [];
     this.wordSource.forEach(item => {
       const include: boolean = !!result.find(sug => {return sug.suggest === item.word});
@@ -275,13 +280,11 @@ export default class Index extends Vue{
           mode: mode
         }
       }).then(response => {
-        this.suggests = response.data;
+        this.suggestsTime = response.data;
+        this.suggests = this.suggestsTime;
         scope.value = true;
       }).catch( error => {
         console.log("response error", error);
-      })
-      .finally(() => {
-        this.loading = false;
       });
   }
 
