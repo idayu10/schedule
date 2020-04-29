@@ -1,107 +1,54 @@
 <template>
   <v-form>
     <v-container>
-      <!-- ローディングのアニメーション -->
-      <div
-        v-if="loading"
-        id="is-loading"
-      >
-        <div id="loading">
-          <img src="~/assets/img/loading.gif" alt="loading" />
-        </div>
-      </div>
-      <!-- メイン -->
-      <v-row justify="start">
-        <v-col>
-          <v-radio-group
-            v-model="userNum"
-            :mandatory="true"
-            @change="searchSchedule"
-          >
-            <v-radio
-              v-for="(user, index) in users"
-              :key="index"
-              :label="user.userId"
-              :value="user.userNum"
-            ></v-radio>
-          </v-radio-group>
-        </v-col>
-        <v-col align-self="end" :cols="9">
-          <v-row>
-            {{date}}
-            <v-icon @click="showCalendar = !showCalendar">mdi-calendar-month</v-icon>
-          </v-row>
-          <v-row v-show="showCalendar" justify="start">
-            <v-date-picker
-              v-model="date"
-              no-title
-              @input="searchSchedule"
-            ></v-date-picker>
-          </v-row>
-        </v-col>
-      </v-row>
-      <v-row justify="start">
-        <v-btn @click="show0To5 = !show0To5">
-          0~5時を表示
-        </v-btn>
-      </v-row>
       <v-row justify="center">
-        <v-col :cols="2" class="add-border">
-          時間
-        </v-col>
-        <v-col class="add-border">
-          予定
-        </v-col>
-        <v-col class="add-border">
-          結果
-        </v-col>
-        <v-col class="add-border">
-          ポイント
-        </v-col>
-      </v-row>
-      <v-row
-        justify="center"
-        v-for="(item, index) in schedules"
-        :key="index"
-        v-show="5 < index || show0To5"
-      >
-        <v-col :cols="2" class="add-border">
-          {{index+'-'+(index+1)}}
-        </v-col>
-        <v-col class="add-border">
-          <suggest-input
-            v-model="item.timeSchedule"
-            mode="schedule"
-            :time="item.targetTime"
-            :user-num="userNum"
-            :word-source="wordSource"
-          ></suggest-input>
-        </v-col>
-        <v-col class="add-border">
-          <suggest-input
-            v-model="item.timeResult"
-            mode="result"
-            :time="item.targetTime"
-            :user-num="userNum"
-            :word-source="wordSource"
-          ></suggest-input>
-        </v-col>
-        <v-col class="add-border">
+        <v-col></v-col>
+        <v-col>
           <v-text-field
-            v-model="item.timePoint"
+            v-model="userId"
+            label="Enter ID"
             clearable
           ></v-text-field>
         </v-col>
+        <v-col></v-col>
+      </v-row>
+      <v-row justify="center">
+        <v-col></v-col>
+        <v-col>
+          <v-text-field
+            v-model="password"
+            label="Enter password"
+            :append-icon="hide ? 'mdi-eye' : 'mdi-eye-off'"
+            @click:append="() => (hide = !hide)"
+            :type="hide ? 'password' : 'text'"
+            clearable
+          ></v-text-field>
+        </v-col>
+        <v-col></v-col>
       </v-row>
       <v-row>
+        <v-col></v-col>
         <v-col>
-          <v-btn
-            small
-            @click="onSave"
-          >
-            保存
-          </v-btn>
+          <v-dialog v-model="dialog" persistent max-width="350">
+            <template v-slot:activator="scope">
+              <v-btn
+                small
+                @click="onLogin(scope)"
+              >
+                ログイン
+              </v-btn>
+            </template>
+            <v-card>
+              <v-card-title class="headline">ログインに失敗しました</v-card-title>
+              <v-card-text>IDまたはパスワードが異なります</v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="green darken-1" text @click="dialog = false">閉じる</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-col>
+        <v-col></v-col>
       </v-row>
     </v-container>
   </v-form>
@@ -122,140 +69,35 @@ import {Suggest, SuggestImpl} from '@/model/suggest'
 })
 export default class Index extends Vue{
 
-  users: UserData[] = [];
-  schedules: TimeSchedule [] = [];
-  date: string = new Date().toISOString().substr(0, 10);
-  userNum: string = '';
-  history: string[] = [];
-  suggests: Suggest[] = [];
-  wordSource: WordSource[] = [];
-  suggestsTime: Suggest[] = [];
-
-  loading: boolean = false;
-  showCalendar: boolean = false;
-  show0To5: boolean = false;
-  noSavehistory: boolean = false;
+  userId: string = '';
+  password: string = '';
+  hide: boolean = true;
+  dialog: boolean = false;
 
   async created(): Promise<void> {
-    this.refleshSuggest();
-    await this.searchUser();
-    this.searchSchedule();
   }
 
-  async refleshSuggest(): Promise<void> {
+  async onLogin(scope: any): Promise<void> {
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/reflesh-suggest';
-    return this.$axios.get(url)
-      .then(response => {
-      }).catch( error => {
-        console.log("response error", error);
-      });
-  }
-
-  async searchUser(): Promise<void> {
-    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/user';
-    return this.$axios.get(url)
-      .then(response => {
-        this.users = response.data;
-        this.userNum = this.users[0].userNum;
-      }).catch( error => {
-        console.log("response error", error);
-      });
-  }
-
-  async searchSchedule(): Promise<void> {
-    this.loading = true;
-    this.getWordSource();
-    const yyyyymmdd: string = this.date.replace(/-/g, '');
-    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/date';
-    return this.$axios.get(url,{
-        params: {
-          user: this.userNum,
-          date: yyyyymmdd
-        }
-      }).then(response => {
-        this.schedules = response.data;
-        this.makeSchedule(yyyyymmdd);
-      }).catch( error => {
-        console.log("response error", error);
-      })
-      .finally(() => {
-        this.loading = false;
-      });
-  }
-
-  private async getWordSource(): Promise<void> {
-    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/suggest-all';
+    const url:string = 'schedule-api/schedule/login';
     return this.$axios.get(url, {
         params: {
-          user: this.userNum
+          id: this.userId,
+          password: this.password
         }
       })
       .then(response => {
-        this.wordSource = response.data;
+        if (response && response.data) {
+          this.$store.commit('login-state/login', response.data);
+          this.$router.push('/main');
+        } else {
+          scope.value = true;
+        }
       }).catch( error => {
         console.log("response error", error);
-      });
-  }
-
-  private makeSchedule(yyyymmdd: string): void {
-    if (this.schedules == null || this.schedules.length !== 24) {
-      this.schedules = [];
-      for (let i = 0; i < 24; i++) {
-        const schedule = new TimeScheduleImpl();
-        schedule.userNum = this.userNum;
-        schedule.targetDate = yyyymmdd;
-        schedule.targetTime = ('00' + i.toString()).slice(-2);
-        this.schedules.push(schedule);
-      }
-    }
-  }
-
-  onSave(): void {
-    this.loading = true;
-    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/insert';
-    this.$axios.post(url, this.schedules)
-      .catch( error => {
-        console.log(error);
-      })
-      .finally(() => {
-        this.loading = false;
       });
   }
 }
 </script>
 <style scoped>
-.add-border {
-  border: 0.5px solid;
-  border-color: black;
-}
-
-#is-loading {
- display: block;
- position: fixed;
- width: 100%;
- height: 100%;
- top: 0px;
- left: 0px;
- background: rgb(15, 15, 15);
- opacity: 20%;
- z-index: 8;
-}
-#loading {
-  position:fixed;
-  left: 50%;
-  top: 50%;
-  border: 1px solid blue;
-  width: 160px;
-  height: 120px;
-  margin-left: -80px;
-  margin-top: -60px;
-  text-align: center;
-  color: black;
-  z-index: 9;
-}
 </style>
