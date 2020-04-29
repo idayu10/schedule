@@ -81,7 +81,10 @@
               <v-text-field
                 v-model="item.timeSchedule"
                 clearable
-                @click="onSuggest(item.targetTime, 'schedule', scope)"
+                @input="onInput($event)"
+                @click="onFocus(item.targetTime, 'schedule', item, scope)"
+                @keydown.native.delete="noSavehistory = true"
+                @blur="onBlur(item.timeSchedule)"
               ></v-text-field>
             </template>
             <v-list v-show="suggests.length !== 0">
@@ -110,7 +113,9 @@
               <v-text-field
                 v-model="item.timeResult"
                 clearable
-                @click="onSuggest(item.targetTime, 'result', scope)"
+                @click="onFocus(item.targetTime, 'result', scope)"
+                @keydown.native.delete="noSavehistory = true"
+                @blur="onBlur(item.timeResult)"
               ></v-text-field>
             </template>
             <v-list v-show="suggests.length !== 0">
@@ -153,7 +158,9 @@
 import { Component, Vue } from 'nuxt-property-decorator';
 import {TimeSchedule, TimeScheduleImpl} from '@/model/time-schedule'
 import {UserData} from '@/model/user-data'
-import {Suggest} from '@/model/suggest'
+import {WordSource} from '@/model/word-source'
+import {HistoryData, HistoryDataImpl} from '@/model/history-data'
+import {Suggest, SuggestImpl} from '@/model/suggest'
 
 @Component({
   components: {
@@ -166,15 +173,30 @@ export default class Index extends Vue{
   schedules: TimeSchedule [] = [];
   date: string = new Date().toISOString().substr(0, 10);
   userNum: string = '';
-  suggests: Suggest[] = []
+  history: string[] = [];
+  suggests: Suggest[] = [];
+  wordSource: WordSource[] = [];
 
   loading: boolean = false;
   showCalendar: boolean = false;
   show0To5: boolean = false;
+  noSavehistory: boolean = false;
 
   async created(): Promise<void> {
+    this.getWordSource();
     await this.searchUser();
     this.searchSchedule();
+  }
+
+  private async getWordSource(): Promise<void> {
+    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+    const url:string = 'schedule-api/schedule/suggest-all';
+    return this.$axios.get(url)
+      .then(response => {
+        this.wordSource = response.data;
+      }).catch( error => {
+        console.log("response error", error);
+      });
   }
 
   async searchUser(): Promise<void> {
@@ -222,7 +244,28 @@ export default class Index extends Vue{
     }
   }
 
-  async onSuggest(time: string, mode: string, scope: any): Promise<void> {
+  onInput(input: string): void {
+    this.history.push(input);
+
+    const result: Suggest[] = [];
+    this.wordSource.forEach(item => {
+      const include: boolean = !!result.find(sug => {return sug.suggest === item.word});
+      if (item.source.match(input) && !include) {
+        const suggest = new SuggestImpl();
+        suggest.suggest = item.word;
+        result.push(suggest);
+      }
+    });
+    this.suggests = result;
+  }
+
+  async onFocus(time: string, mode: string, item: TimeSchedule, scope: any): Promise<void> {
+    if ('schedule' === mode) {
+      this.noSavehistory = !!item.timeSchedule;
+    } else {
+      this.noSavehistory = !!item.timeResult;
+    }
+
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
     const url:string = 'schedule-api/schedule/suggest';
     return this.$axios.get(url,{
@@ -240,6 +283,22 @@ export default class Index extends Vue{
       .finally(() => {
         this.loading = false;
       });
+  }
+
+  async onBlur(word: string): Promise<void> {
+    if (!this.noSavehistory && !!word) {
+      const historyObj: HistoryData = new HistoryDataImpl();
+      historyObj.word = word;
+      historyObj.history = this.history;
+      this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+      const url:string = 'schedule-api/schedule/history';
+      await this.$axios.post(url, historyObj)
+        .catch( error => {
+          console.log("response error", error);
+        });
+    }
+    this.noSavehistory = false;
+    this.history = [];
   }
 
   onSave(): void {
