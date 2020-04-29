@@ -123,7 +123,7 @@
                 <v-list-item
                   v-for="(suggest, i) in suggests"
                   :key="i"
-                  @click="item.timeSchedule = suggest.suggest"
+                  @click="item.timeResult = suggest.suggest"
                 >
                   <v-list-item-content>
                     <v-list-item-title v-text="suggest.suggest"></v-list-item-title>
