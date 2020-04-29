@@ -39,8 +39,6 @@
             ></v-date-picker>
           </v-row>
         </v-col>
-        <!-- <v-col></v-col>
-        <v-col></v-col> -->
       </v-row>
       <v-row justify="start">
         <v-btn @click="show0To5 = !show0To5">
@@ -71,68 +69,22 @@
           {{index+'-'+(index+1)}}
         </v-col>
         <v-col class="add-border">
-          <v-menu
-            allow-overflow
-            bottom
-            left
-            offset-y
-          >
-            <template v-slot:activator="scope">
-              <v-text-field
-                v-model="item.timeSchedule"
-                clearable
-                @input="onInput($event)"
-                @click="onFocus(item.targetTime, 'schedule', item, scope)"
-                @keydown.native.delete="noSavehistory = true"
-                @blur="onBlur(item.timeSchedule)"
-              ></v-text-field>
-            </template>
-            <v-list v-show="suggests.length !== 0">
-              <v-list-item-group>
-                <v-list-item
-                  v-for="(suggest, i) in suggests"
-                  :key="i"
-                  @click="item.timeSchedule = suggest.suggest"
-                >
-                  <v-list-item-content>
-                    <v-list-item-title v-text="suggest.suggest"></v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list>
-          </v-menu>
+          <suggest-input
+            v-model="item.timeSchedule"
+            mode="schedule"
+            :time="item.targetTime"
+            :user-num="userNum"
+            :word-source="wordSource"
+          ></suggest-input>
         </v-col>
         <v-col class="add-border">
-          <v-menu
-            allow-overflow
-            bottom
-            left
-            offset-y
-          >
-            <template v-slot:activator="scope">
-              <v-text-field
-                v-model="item.timeResult"
-                clearable
-                @input="onInput($event)"
-                @click="onFocus(item.targetTime, 'result', item, scope)"
-                @keydown.native.delete="noSavehistory = true"
-                @blur="onBlur(item.timeResult)"
-              ></v-text-field>
-            </template>
-            <v-list v-show="suggests.length !== 0">
-              <v-list-item-group>
-                <v-list-item
-                  v-for="(suggest, i) in suggests"
-                  :key="i"
-                  @click="item.timeResult = suggest.suggest"
-                >
-                  <v-list-item-content>
-                    <v-list-item-title v-text="suggest.suggest"></v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list>
-          </v-menu>
+          <suggest-input
+            v-model="item.timeResult"
+            mode="result"
+            :time="item.targetTime"
+            :user-num="userNum"
+            :word-source="wordSource"
+          ></suggest-input>
         </v-col>
         <v-col class="add-border">
           <v-text-field
@@ -165,7 +117,7 @@ import {Suggest, SuggestImpl} from '@/model/suggest'
 
 @Component({
   components: {
-    Logo :() => import('@/components/Logo.vue'),
+    SuggestInput :() => import('@/components/SuggestInput.vue'),
   }
 })
 export default class Index extends Vue{
@@ -185,17 +137,16 @@ export default class Index extends Vue{
   noSavehistory: boolean = false;
 
   async created(): Promise<void> {
-    this.getWordSource();
+    this.refleshSuggest();
     await this.searchUser();
     this.searchSchedule();
   }
 
-  private async getWordSource(): Promise<void> {
+  async refleshSuggest(): Promise<void> {
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/suggest-all';
+    const url:string = 'schedule-api/schedule/reflesh-suggest';
     return this.$axios.get(url)
       .then(response => {
-        this.wordSource = response.data;
       }).catch( error => {
         console.log("response error", error);
       });
@@ -207,6 +158,7 @@ export default class Index extends Vue{
     return this.$axios.get(url)
       .then(response => {
         this.users = response.data;
+        this.userNum = this.users[0].userNum;
       }).catch( error => {
         console.log("response error", error);
       });
@@ -214,6 +166,7 @@ export default class Index extends Vue{
 
   async searchSchedule(): Promise<void> {
     this.loading = true;
+    this.getWordSource();
     const yyyyymmdd: string = this.date.replace(/-/g, '');
     this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
     const url:string = 'schedule-api/schedule/date';
@@ -233,6 +186,21 @@ export default class Index extends Vue{
       });
   }
 
+  private async getWordSource(): Promise<void> {
+    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+    const url:string = 'schedule-api/schedule/suggest-all';
+    return this.$axios.get(url, {
+        params: {
+          user: this.userNum
+        }
+      })
+      .then(response => {
+        this.wordSource = response.data;
+      }).catch( error => {
+        console.log("response error", error);
+      });
+  }
+
   private makeSchedule(yyyymmdd: string): void {
     if (this.schedules == null || this.schedules.length !== 24) {
       this.schedules = [];
@@ -244,65 +212,6 @@ export default class Index extends Vue{
         this.schedules.push(schedule);
       }
     }
-  }
-
-  onInput(input: string): void {
-    this.history.push(input);
-
-    if (!input) {
-      this.suggests = this.suggestsTime;
-      return;
-    }
-    const result: Suggest[] = [];
-    this.wordSource.forEach(item => {
-      const include: boolean = !!result.find(sug => {return sug.suggest === item.word});
-      if (item.source.match(input) && !include) {
-        const suggest = new SuggestImpl();
-        suggest.suggest = item.word;
-        result.push(suggest);
-      }
-    });
-    this.suggests = result;
-  }
-
-  async onFocus(time: string, mode: string, item: TimeSchedule, scope: any): Promise<void> {
-    if ('schedule' === mode) {
-      this.noSavehistory = !!item.timeSchedule;
-    } else {
-      this.noSavehistory = !!item.timeResult;
-    }
-
-    this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-    const url:string = 'schedule-api/schedule/suggest';
-    return this.$axios.get(url,{
-        params: {
-          user: this.userNum,
-          time: time,
-          mode: mode
-        }
-      }).then(response => {
-        this.suggestsTime = response.data;
-        this.suggests = this.suggestsTime;
-        scope.value = true;
-      }).catch( error => {
-        console.log("response error", error);
-      });
-  }
-
-  async onBlur(word: string): Promise<void> {
-    if (!this.noSavehistory && !!word) {
-      const historyObj: HistoryData = new HistoryDataImpl();
-      historyObj.word = word;
-      historyObj.history = this.history;
-      this.$axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-      const url:string = 'schedule-api/schedule/history';
-      await this.$axios.post(url, historyObj)
-        .catch( error => {
-          console.log("response error", error);
-        });
-    }
-    this.noSavehistory = false;
-    this.history = [];
   }
 
   onSave(): void {
