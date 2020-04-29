@@ -81,7 +81,7 @@
               <v-text-field
                 v-model="item.timeSchedule"
                 clearable
-                @input="onInput"
+                @input="onInput($event)"
                 @click="onFocus(item.targetTime, 'schedule', item, scope)"
                 @keydown.native.delete="noSavehistory = true"
                 @blur="onBlur(item.timeSchedule)"
@@ -113,7 +113,7 @@
               <v-text-field
                 v-model="item.timeResult"
                 clearable
-                @input="onInput"
+                @input="onInput($event)"
                 @click="onFocus(item.targetTime, 'result', item, scope)"
                 @keydown.native.delete="noSavehistory = true"
                 @blur="onBlur(item.timeResult)"
