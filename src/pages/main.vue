@@ -116,7 +116,7 @@ export default class Main extends Vue{
   /** スケジュールデータ */
   schedules: TimeSchedule [] = [];
   /** スケジュールを表示する日付 */
-  date: string = new Date().toISOString().substr(0, 10);
+  date: string = new Date(Date.now()+1000*60*60*9).toISOString().substr(0, 10);
   /** サジェスト用データ */
   wordSource: WordSource[] = [];
 
