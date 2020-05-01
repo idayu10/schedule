@@ -1,9 +1,8 @@
 <template>
   <v-menu
     allow-overflow
-    bottom
-    left
-    offset-y
+    right
+    offset-x
   >
     <template v-slot:activator="scope">
       <v-text-field
